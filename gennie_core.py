@@ -231,7 +231,7 @@ def summarize_results(html_payload, question, model_id, chat_history):
         
         2. Include Chat History as part of the context if it does make sense.
 
-        3. Once you're done ingesting, provide a through answer (around) 500 words. Focus on the main ideas and key points related to the user's query: {question}. When possible, provide examples. If the question is related to coding, provide code snippets.
+        3. Once you're done ingesting, provide a through answer. Focus on the main ideas and key points related to the user's query: {question}. When possible, provide examples. If the question is related to coding, provide code snippets.
 
         4. You can use the knowledge obtained by analyzing the information provided to craft an answer doing some assumptions as long as you are based on facts.
 
@@ -249,6 +249,7 @@ def summarize_results(html_payload, question, model_id, chat_history):
         
         Remember to base your responses solely on the provided data and maintain a neutral, informative tone. Output in markdown format.
     """
+    logr(f"PROMPT: {PROMPT}")
     if model_id.startswith("gemini"):
         search_result_analysis = gemini_inference.run_inference(html_payload, PROMPT, 'string', model_id)
     else:
