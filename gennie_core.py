@@ -11,6 +11,105 @@ import gemini_inference, claude_inference
 from shared import web_crawler
 from shared import log_message as logr
 
+class SearchResult:
+    def __init__(self, json_data, question, llm_model, verbose=False):
+        self.json_data = json_data
+        self.question = question
+        self.llm_model = llm_model
+        self.verbose = verbose
+        self.title = None
+        self.link = None
+        self.raw_content = None
+        self.markdown = None
+        self.relevance = None
+        self.extract_search_info()
+        
+    def to_string(self):
+        return (
+            f"Title: {self.title}\n\n"
+            f"Content: {self.markdown}\n\n"
+            f"URL: {self.link}\n\n"
+            f"Relevance: {self.relevance}\n"
+        )
+             
+    def extract_search_info(self):
+        if isinstance(self.json_data, dict):
+            # Handle single dictionary input
+            self._process_single_result(self.json_data)
+        elif isinstance(self.json_data, list):
+            # Handle list of dictionaries input
+            if self.json_data:
+                self._process_single_result(self.json_data[0])
+        else:
+            # Handle unexpected input type
+            raise ValueError("Input must be a dictionary or a list of dictionaries")
+
+    def _process_single_result(self, item):
+        self.title = item.get('title', '')
+        self.link = item.get('link', '')
+        if self.link:
+            try:
+                self.raw_content = self.fetch_raw_content(self.link)
+                self.markdown = self.convert_to_markdown(self.raw_content)
+                self.relevance = self.evaluate_relevance(self.markdown, self.question, self.llm_model)
+            except Exception as e:
+                logr(f"Error processing result for link {self.link}: {e}")
+
+    def fetch_raw_content(self, url):
+        logr(f"fetching raw content for: {url}")
+        try:
+            return web_crawler(url).content["html_body"]
+        except Exception as e:
+            logr(f"Failed to fetch raw content for {url}: {e}")
+            return None
+
+    def convert_to_markdown(self, raw_content):
+        logr("Converting raw HTML to markdown")
+        try:
+            start_time = time.time()
+            # m = html2markdown2(raw_content, self.llm_model)
+            m = html2markdown(raw_content)
+            del self.raw_content
+            end_time = time.time()
+            if self.verbose:
+                logr(f"convert_to_markdown execution time: {round(end_time - start_time, 5)} seconds")
+            return m
+        except Exception as e:
+            logr(f"Failed to convert raw content to markdown: {e}")
+            return None
+
+    def evaluate_relevance(self, markdown, question, llm_model):
+        try:
+            logr(f"evaluating the relevance of the content scraped ...")
+            start_time = time.time()
+            PROMPT = f"""
+                You are an advanced AI assistant specialized in analyzing web search results. Please perform the following tasks:
+
+                1. Make sense of all the information provided. Ingest the data thoughtfully and make your own conclusions.
+
+                2. Provide a concise and blunt review of the content provided
+
+                3. Relevance score:
+                Assign a relevance score from 1 to 5 (where 1 is least relevant and 5 is most relevant). Provide a score based on how relevant is the content related to the user's question: {question}.
+
+                4. Format your output as follows:
+                    evaluation : <Direct and blunt review of the content>,
+                    score : <relevance Score [1-5]>
+                5. Do NOT output nothing but the json as instructed.
+                6. Remember to base your responses solely on the provided data and maintain a neutral, informative tone.
+            """
+            if llm_model.startswith("gemini"):
+                content_check = gemini_inference.run_inference(markdown, PROMPT, "string", llm_model)
+            else:
+                content_check = claude_inference.run_inference(markdown, PROMPT, "string", llm_model)
+            end_time = time.time()
+            if self.verbose:
+                logr(f"evaluate_relevance execution time: {round(end_time - start_time, 5)} seconds")
+            return content_check
+        except Exception as e:
+            logr(f"Failed to evaluate relevance: {e}")
+            return None
+
 def llm_based_html2markdown(html, model_id):
     HTML_BODY_EXTRACTOR_PROMPT = """
         You are an expert HTML parser and markdown converter. Your task is to take raw HTML code as input, extract only the relevant content from the HTML body, and convert it to markdown format. Follow these steps:
@@ -120,105 +219,6 @@ def validate_date_restrict(value):
     if not re.match(pattern, value):
         raise argparse.ArgumentTypeError('Invalid date_restrict format. Must be d[number], w[number], m[number], or y[1-3].')
     return value
-
-class SearchResult:
-    def __init__(self, json_data, question, llm_model, verbose=False):
-        self.json_data = json_data
-        self.question = question
-        self.llm_model = llm_model
-        self.verbose = verbose
-        self.title = None
-        self.link = None
-        self.raw_content = None
-        self.markdown = None
-        self.relevance = None
-        self.extract_search_info()
-        
-    def to_string(self):
-        return (
-            f"Title: {self.title}\n\n"
-            f"Content: {self.markdown}\n\n"
-            f"URL: {self.link}\n\n"
-            f"Relevance: {self.relevance}\n"
-        )
-             
-    def extract_search_info(self):
-        if isinstance(self.json_data, dict):
-            # Handle single dictionary input
-            self._process_single_result(self.json_data)
-        elif isinstance(self.json_data, list):
-            # Handle list of dictionaries input
-            if self.json_data:
-                self._process_single_result(self.json_data[0])
-        else:
-            # Handle unexpected input type
-            raise ValueError("Input must be a dictionary or a list of dictionaries")
-
-    def _process_single_result(self, item):
-        self.title = item.get('title', '')
-        self.link = item.get('link', '')
-        if self.link:
-            try:
-                self.raw_content = self.fetch_raw_content(self.link)
-                self.markdown = self.convert_to_markdown(self.raw_content)
-                self.relevance = self.evaluate_relevance(self.markdown, self.question, self.llm_model)
-            except Exception as e:
-                logr(f"Error processing result for link {self.link}: {e}")
-
-    def fetch_raw_content(self, url):
-        logr(f"fetching raw content for: {url}")
-        try:
-            return web_crawler(url).content["html_body"]
-        except Exception as e:
-            logr(f"Failed to fetch raw content for {url}: {e}")
-            return None
-
-    def convert_to_markdown(self, raw_content):
-        logr("Converting raw HTML to markdown")
-        try:
-            start_time = time.time()
-            # m = html2markdown2(raw_content, self.llm_model)
-            m = html2markdown(raw_content)
-            del self.raw_content
-            end_time = time.time()
-            if self.verbose:
-                logr(f"convert_to_markdown execution time: {round(end_time - start_time, 5)} seconds")
-            return m
-        except Exception as e:
-            logr(f"Failed to convert raw content to markdown: {e}")
-            return None
-
-    def evaluate_relevance(self, markdown, question, llm_model):
-        try:
-            logr(f"evaluating the relevance of the content scraped ...")
-            start_time = time.time()
-            PROMPT = f"""
-                You are an advanced AI assistant specialized in analyzing web search results. Please perform the following tasks:
-
-                1. Make sense of all the information provided. Ingest the data thoughtfully and make your own conclusions.
-
-                2. Provide a concise and blunt review of the content provided
-
-                3. Relevance score:
-                Assign a relevance score from 1 to 5 (where 1 is least relevant and 5 is most relevant). Provide a score based on how relevant is the content related to the user's question: {question}.
-
-                4. Format your output as follows:
-                    evaluation : <Direct and blunt review of the content>,
-                    score : <relevance Score [1-5]>
-                5. Do NOT output nothing but the json as instructed.
-                6. Remember to base your responses solely on the provided data and maintain a neutral, informative tone.
-            """
-            if llm_model.startswith("gemini"):
-                content_check = gemini_inference.run_inference(markdown, PROMPT, "string", llm_model)
-            else:
-                content_check = claude_inference.run_inference(markdown, PROMPT, "string", llm_model)
-            end_time = time.time()
-            if self.verbose:
-                logr(f"evaluate_relevance execution time: {round(end_time - start_time, 5)} seconds")
-            return content_check
-        except Exception as e:
-            logr(f"Failed to evaluate relevance: {e}")
-            return None
 
 def serialize_search_results(search_results):
     return "\n".join([result.to_string() for result in search_results])       
