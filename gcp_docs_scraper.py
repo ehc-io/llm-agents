@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import time
 from gemini_inference import count_chars_and_tokens, run_inference
 from usescraper_wrapper import create_scrape_job, get_job_info, get_scraped_data
