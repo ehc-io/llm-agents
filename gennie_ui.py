@@ -2,7 +2,7 @@ import json
 import streamlit as st
 from collections import deque
 
-from shared import log_message
+from shared import log_message as logr
 import gennie_core
 
 # Initialize the deque to store the latest 5 interactions
@@ -13,21 +13,21 @@ def main():
     with st.sidebar:
         st.title("Options")
         # Model selection
-        model_id = st.selectbox("LLM Model" , ['gemini-1.5-flash-001', 'gemini-1.5-pro-001', 'claude-3-5-sonnet-20240620', 'claude-3-opus-20240229'])
+        model_id = st.selectbox("LLM Model", ['gemini-1.5-flash-001', 'gemini-1.5-pro-001', 'claude-3-5-sonnet-20240620', 'claude-3-opus-20240229'])
         num_google_search_results = st.slider('Num Results:', 1, 10, step=1, value=5)
 
         # New date reference selection
-        date_reference = st.selectbox('Date Reference', ['d', 'w', 'm', 'y'], format_func=lambda x: {'d': 'Days', 'w': 'Weeks', 'm': 'Months', 'y': 'Years'}[x])
+        date_reference = st.selectbox('Date Reference', ['d', 'w', 'm', 'y'], format_func=lambda x: {'d': 'Days', 'w': 'Weeks', 'm': 'Months', 'y': 'Years'}[x], index=3)
 
         # Adjust slider label and range based on date reference
         if date_reference == 'd':
-            results_max_age = st.slider('Search Max Age (days)', 1, 30, step=1, value=7)
+            results_max_age = st.slider('Search Max Age', 1, 30, step=1, value=7)
         elif date_reference == 'w':
-            results_max_age = st.slider('Search Max Age (weeks)', 1, 52, step=1, value=4)
+            results_max_age = st.slider('Search Max Age', 1, 52, step=1, value=4)
         elif date_reference == 'm':
-            results_max_age = st.slider('Search Max Age (months)', 1, 12, step=1, value=6)
+            results_max_age = st.slider('Search Max Age', 1, 12, step=1, value=6)
         else:  # years
-            results_max_age = st.slider('Search Max Age (years)', 1, 10, step=1, value=1)
+            results_max_age = st.slider('Search Max Age', 1, 10, step=1, value=3)
 
         # Combine date_reference and results_max_age
         date_restrict = f"{date_reference}{results_max_age}"
@@ -68,7 +68,7 @@ def main():
                 st.write(prompt)
             with st.chat_message("assistant"):
                 st.write(response)
-            log_message(f"History: {st.session_state.history}")
+            logr(f"History: {st.session_state.history}")
 
 
 if __name__ == "__main__":
