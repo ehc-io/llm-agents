@@ -6,7 +6,13 @@ from bs4 import BeautifulSoup
 # Modules
 from shared import log_message as logr
 
-def run_inference(payload, prompt, type, model_id, verbose=False):
+def count_chars_and_tokens(model_id, prompt):
+    anthropic = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    num_chars = len(prompt)
+    num_tokens = anthropic.count_tokens(prompt)
+    return num_chars, num_tokens
+
+def run_text_inference(payload, prompt, type, model_id, verbose=False):
     # Initialize Anthropic client
     anthropic = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -49,8 +55,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.html_uri and args.type == "file":
-        run_inference(args.html_uri, args.prompt, args.type, args.model,args.verbose)
+        run_text_inference(args.html_uri, args.prompt, args.type, args.model,args.verbose)
     elif args.input and args.type == "string":
-        run_inference(args.input, args.prompt, args.type, args.model,args.verbose)
+        run_text_inference(args.input, args.prompt, args.type, args.model,args.verbose)
     else:
         parser.log_message_help()

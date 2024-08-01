@@ -14,7 +14,7 @@ def count_chars_and_tokens(model_id, prompt):
     num_tokens = model.count_tokens(prompt)
     return num_chars, num_tokens
 
-def run_inference(payload, prompt, type, model_id, verbose=False):
+def run_text_inference(payload, prompt, type, model_id, verbose=False):
     # Initialize Vertex AI
     vertexai.init(project=os.getenv("VERTEX_IA_PROJECT"), location=os.getenv("VERTEX_IA_REGION"))
 
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.html_uri and args.type == "file":
-        run_inference(args.html_uri, args.prompt, args.type, args.model,args.verbose)
+        run_text_inference(args.html_uri, args.prompt, args.type, args.model,args.verbose)
     elif args.input and args.type == "string":
-        run_inference(args.input, args.prompt, args.type, args.model,args.verbose)
+        run_text_inference(args.input, args.prompt, args.type, args.model,args.verbose)
     else:
         parser.log_message_help()

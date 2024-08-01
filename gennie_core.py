@@ -99,9 +99,9 @@ class SearchResult:
                 6. Remember to base your responses solely on the provided data and maintain a neutral, informative tone.
             """
             if llm_model.startswith("gemini"):
-                content_check = gemini_inference.run_inference(markdown, PROMPT, "string", llm_model)
+                content_check = gemini_inference.run_text_inference(markdown, PROMPT, "string", llm_model)
             else:
-                content_check = claude_inference.run_inference(markdown, PROMPT, "string", llm_model)
+                content_check = claude_inference.run_text_inference(markdown, PROMPT, "string", llm_model)
             end_time = time.time()
             if self.verbose:
                 logr(f"evaluate_relevance execution time: {round(end_time - start_time, 5)} seconds")
@@ -131,9 +131,9 @@ def llm_based_html2markdown(html, model_id):
         7. Output the resulting markdown-formatted text.
     """
     if model_id.startswith("gemini"):
-        markdown = gemini_inference.run_inference(html, HTML_BODY_EXTRACTOR_PROMPT, "string", model_id)
+        markdown = gemini_inference.run_text_inference(html, HTML_BODY_EXTRACTOR_PROMPT, "string", model_id)
     else:
-        markdown = claude_inference.run_inference(html, HTML_BODY_EXTRACTOR_PROMPT, "string", model_id)
+        markdown = claude_inference.run_text_inference(html, HTML_BODY_EXTRACTOR_PROMPT, "string", model_id)
     return markdown
 
 def html2markdown(html):
@@ -178,7 +178,7 @@ def get_search_query(question, model_id):
     PROMPT = f"""
     You are very creative and sharp. You have mastered the skills related to finding information on the web, knowing every trick to get relevant results from Google search. Your task is to provide the best search query to submit on Google Search to obtain the most relevant results for this question: {question}. Output only the search query. Do not include line breaks, quotes, or any comments.
     """
-    search_string = gemini_inference.run_inference(question, PROMPT, 'string', model_id)
+    search_string = gemini_inference.run_text_inference(question, PROMPT, 'string', model_id)
     return search_string
 
 def google_search(query, api_key, cx, num_results, start_index, date_restrict='y2'):
@@ -251,9 +251,9 @@ def summarize_results(html_payload, question, model_id, chat_history):
     """
     logr(f"PROMPT: {PROMPT}")
     if model_id.startswith("gemini"):
-        search_result_analysis = gemini_inference.run_inference(html_payload, PROMPT, 'string', model_id)
+        search_result_analysis = gemini_inference.run_text_inference(html_payload, PROMPT, 'string', model_id)
     else:
-        search_result_analysis = claude_inference.run_inference(html_payload, PROMPT, 'string', model_id)
+        search_result_analysis = claude_inference.run_text_inference(html_payload, PROMPT, 'string', model_id)
 
     return search_result_analysis
 
