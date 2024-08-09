@@ -8,11 +8,11 @@ from bs4 import BeautifulSoup
 # Modules
 from shared import log_message as logr
 
-def count_chars_and_tokens(model_id, prompt):
+def count_chars_and_tokens(model_id, content):
     model = GenerativeModel(model_id)
-    num_chars = len(prompt)
-    num_tokens = model.count_tokens(prompt)
-    return num_chars, num_tokens
+    num_chars = len(content)
+    num_tokens = model.count_tokens(content).total_tokens
+    return { "num_chars" : num_chars, "num_tokens" : num_tokens } 
 
 def run_text_inference(payload, prompt, type, model_id, verbose=False):
     # Initialize Vertex AI

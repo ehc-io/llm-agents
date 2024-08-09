@@ -47,7 +47,7 @@ def main(url, prompt, scrapeuse_token, download_folder, model_id):
         - It's mandatory to extract the full URL, containing schema (https) and the FQDN, ex: cloud.google.com. 
         - Provide nothing but a list of URLs, enclosed by quotes, and separated by commas
         """
-    logr('Tring to extract the link URLs from the HTML body ...')
+    logr('Trying to extract the link URLs from the HTML body ...')
     # logr(f"prompt: {prompt}")
     try:
         if model_id.startswith("gemini"):
@@ -87,14 +87,11 @@ def main(url, prompt, scrapeuse_token, download_folder, model_id):
     with open(output_path, "r") as f:
         payload = f.read()
         if model_id.startswith("gemini"):
-            c, t = gemini_inference.count_chars_and_tokens(model_id, payload)
-            logr(f"characters: {convert_integer_to_decimal(c)}")
-            logr(f"tokens: {convert_integer_to_decimal(t.total_tokens)}")
-            logr(f"billable chars: {convert_integer_to_decimal(t.total_billable_characters)}")
+            r = gemini_inference.count_chars_and_tokens(model_id, payload)
         else:
-            c, t = claude_inference.count_chars_and_tokens(model_id, payload)
-            logr(f"characters: {convert_integer_to_decimal(c)}")
-            logr(f"tokens: {convert_integer_to_decimal(t)}")
+            r = claude_inference.count_chars_and_tokens(model_id, payload)
+        logr(f"characters: {convert_integer_to_decimal(r['num_chars'])}")
+        logr(f"tokens: {convert_integer_to_decimal(r['num_tokens'])}")
 
 
 if __name__ == "__main__":
