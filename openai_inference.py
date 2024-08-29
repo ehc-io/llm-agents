@@ -1,8 +1,11 @@
 import argparse
 import os
 import tiktoken
+import tempfile
 from openai import OpenAI
 from bs4 import BeautifulSoup
+
+from pydub import AudioSegment
 
 # Modules
 from shared import log_message as logr
@@ -43,6 +46,48 @@ def run_text_inference(payload, prompt, type, model_id, verbose=False):
         print(response.choices[0].message.content)
     return response.choices[0].message.content
 
+def transcribe_audio(file_path, model="whisper-1", sampled=False):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    temp_file_path = None
+    try:
+        if sampled:
+            # Load the audio file
+            audio = AudioSegment.from_file(file_path)
+
+            # Extract the first 5 minutes (or less if the file is shorter)
+            duration_ms = 60000  # 300000 ms = 5 minutes
+            first_5_minutes = audio[:duration_ms]
+
+            # Create a temporary file to store the extracted audio
+            temp_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            temp_file_path = temp_file.name
+            first_5_minutes.export(temp_file_path, format="mp3")
+
+            # Use the temporary file for transcription
+            transcription_file = temp_file_path
+        else:
+            # Use the original file for transcription
+            transcription_file = file_path
+
+        # Transcribe the file
+        with open(transcription_file, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model=model,
+                file=audio_file,
+                timestamp_granularities=["segment"],
+                response_format="verbose_json"
+            )
+
+        return transcription.text
+    except Exception as e:
+        print(f"An error occurred during transcription: {e}")
+        return None
+    finally:
+        # Clean up the temporary file if it was created
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+            # if 
+            # print(f"Temporary file {temp_file_path} has been removed.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process content using OpenAI's models.")

@@ -1,32 +1,30 @@
 #!/usr/bin/python3
+import argparse
+import sys
 import time
 import gemini_inference
 import claude_inference
 from usescraper_wrapper import create_scrape_job, get_job_info, get_scraped_data
-from shared import web_crawler, convert_integer_to_decimal, convert_string_to_list
+from shared import scraper_api, convert_integer_to_decimal, convert_string_to_list
 from shared import log_message as logr
+
+# DEPENDENCIES_FOLDER ='../../llm-agents' 
+# sys.path.append(DEPENDENCIES_FOLDER)
 
 def main(url, prompt, scrapeuse_token, download_folder, model_id):
     # stage #1 Scraper
     logr(f"starting stage #1 scraper")
-    crawler = web_crawler(url=url)
-
-    if "error" in crawler.content:
-        error_message = crawler.content["error"]
-        if "Connection error" in error_message:
-            logr(f"Crawling failed due to connection issues: {error_message}")
-        elif "Failed to decode JSON response" in error_message:
-            logr(f"Crawling failed due to JSON decoding error: {error_message}")
-        else:
-            logr(f"Crawling failed: {error_message}")
+    crawler = scraper_api(url, "raw-html", 3000)
+    if not crawler.content:
+        logr(f"Crawling failed to return content!")
         return False
 
-    if "html_body" not in crawler.content:
-        logr("error: HTML body not found in the result.")
-        return
+    # if "html_body" not in crawler.content:
+    #     logr("error: HTML body not found in the result.")
+    #     return
 
     topic = crawler.url.split('/')[3]
-    payload = crawler.content["html_body"]
+    payload = str(crawler.content)
     if prompt is None:
         prompt = f"""
         You are a data extractor assistant. Your task is to extract all URLs under {topic}'s documentation following these rules:
@@ -95,8 +93,6 @@ def main(url, prompt, scrapeuse_token, download_folder, model_id):
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(description="Web Scraper Script")
     parser.add_argument("-u", "--url", type=str, help="URL to scrape")
     parser.add_argument("-p", "--prompt", type=str, default=None, help="Prompt for data extraction")
